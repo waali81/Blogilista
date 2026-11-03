@@ -1,0 +1,49 @@
+services:
+  app:
+    image: bloglist-front
+    build:
+      context: ./client
+      dockerfile: dev.Dockerfile
+    environment:
+      - VITE_API_PROXY_TARGET=http://backend:3003
+    volumes:
+      - ./client:/usr/src/app
+      - /usr/src/app/node_modules
+
+  backend:
+    image: bloglist-backend
+    build:
+      context: ./server
+      dockerfile: dev.Dockerfile
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - MONGODB_URI=mongodb://root:example@mongo:27017/bloglist?authSource=admin
+      - SECRET=bloglistdevelopmentsecret
+    depends_on:
+      - mongo
+    volumes:
+      - ./server:/usr/src/app
+      - /usr/src/app/node_modules
+
+  mongo:
+    image: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+      - MONGO_INITDB_DATABASE=bloglist
+    volumes:
+      - bloglist-mongo-data:/data/db
+
+  nginx:
+    image: nginx:1.29-alpine
+    ports:
+      - 8080:80
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+      - backend
+
+volumes:
+  bloglist-mongo-data:
